@@ -5,9 +5,10 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           mello
-version:        0.1.0
-synopsis:       No fuss syntax with s-expressions
+version:        0.6.0
+synopsis:       No-fuss syntax with s-expressions
 description:    Please see the README on GitHub at <https://github.com/ejconlon/mello#readme>
+category:       Parsing
 homepage:       https://github.com/ejconlon/mello#readme
 bug-reports:    https://github.com/ejconlon/mello/issues
 author:         Eric Conlon
@@ -17,6 +18,8 @@ license:        BSD3
 build-type:     Simple
 tested-with:
     GHC == 9.6.4
+extra-source-files:
+    README.md
 
 source-repository head
   type: git
@@ -24,7 +27,11 @@ source-repository head
 
 library
   exposed-modules:
-      Mello.Main
+      Mello.Match
+      Mello.Parse
+      Mello.Recognize
+      Mello.Syntax
+      Mello.Text
   other-modules:
       Paths_mello
   hs-source-dirs:
@@ -61,47 +68,15 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -fno-warn-unused-top-binds
   build-depends:
       base >=4.12 && <5
-  default-language: GHC2021
-
-executable mello-exe
-  main-is: Main.hs
-  other-modules:
-      Paths_mello
-  hs-source-dirs:
-      exe
-  default-extensions:
-      BangPatterns
-      ConstraintKinds
-      DataKinds
-      DeriveFunctor
-      DeriveFoldable
-      DeriveGeneric
-      DeriveTraversable
-      DerivingStrategies
-      DerivingVia
-      FlexibleContexts
-      FlexibleInstances
-      FunctionalDependencies
-      GADTs
-      GeneralizedNewtypeDeriving
-      ImportQualifiedPost
-      LambdaCase
-      KindSignatures
-      MultiParamTypeClasses
-      MultiWayIf
-      PatternSynonyms
-      Rank2Types
-      ScopedTypeVariables
-      StandaloneDeriving
-      StandaloneKindSignatures
-      TupleSections
-      TypeApplications
-      TypeOperators
-      TypeFamilies
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -fno-warn-unused-top-binds -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      base >=4.12 && <5
-    , mello
+    , bowtie ==0.3.*
+    , containers ==0.6.*
+    , foldl ==1.4.*
+    , looksee ==0.6.*
+    , mtl >=2.3 && <2.5
+    , prettyprinter ==1.7.*
+    , recursion-schemes ==5.2.*
+    , scientific ==0.3.*
+    , text ==2.0.*
   default-language: GHC2021
 
 test-suite mello-test
@@ -143,7 +118,18 @@ test-suite mello-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -fno-warn-unused-top-binds -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.12 && <5
+    , bowtie ==0.3.*
+    , containers ==0.6.*
+    , daytripper ==0.3.*
+    , foldl ==1.4.*
+    , looksee ==0.6.*
+    , looksee-trip ==0.6.*
     , mello
-    , tasty
-    , tasty-hunit
+    , mtl >=2.3 && <2.5
+    , prettyprinter ==1.7.*
+    , recursion-schemes ==5.2.*
+    , scientific ==0.3.*
+    , tasty >=1.4.3 && <1.5
+    , tasty-hunit ==0.10.*
+    , text ==2.0.*
   default-language: GHC2021
