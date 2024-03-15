@@ -26,7 +26,7 @@ packages:
   original:
     hackage: falsify-0.2.0
 - completed:
-    commit: b854f35a983a911f0c7a1d917f34dfb104f2cfab
+    commit: ec7aba93cb47897b8710e7f12fe82cb7dfa379cc
     git: git@github.com:ejconlon/looksee.git
     name: looksee
     pantry-tree:
@@ -35,11 +35,11 @@ packages:
     subdir: looksee
     version: 0.6.0
   original:
-    commit: b854f35a983a911f0c7a1d917f34dfb104f2cfab
+    commit: ec7aba93cb47897b8710e7f12fe82cb7dfa379cc
     git: git@github.com:ejconlon/looksee.git
     subdir: looksee
 - completed:
-    commit: b854f35a983a911f0c7a1d917f34dfb104f2cfab
+    commit: ec7aba93cb47897b8710e7f12fe82cb7dfa379cc
     git: git@github.com:ejconlon/looksee.git
     name: looksee-trip
     pantry-tree:
@@ -48,7 +48,7 @@ packages:
     subdir: looksee-trip
     version: 0.6.0
   original:
-    commit: b854f35a983a911f0c7a1d917f34dfb104f2cfab
+    commit: ec7aba93cb47897b8710e7f12fe82cb7dfa379cc
     git: git@github.com:ejconlon/looksee.git
     subdir: looksee-trip
 snapshots:

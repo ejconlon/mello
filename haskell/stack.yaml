@@ -14,7 +14,7 @@ extra-deps:
 # - looksee-0.6.0
 # - looksee-trip-0.6.0
 - git: git@github.com:ejconlon/looksee.git
-  commit: b854f35a983a911f0c7a1d917f34dfb104f2cfab
+  commit: ec7aba93cb47897b8710e7f12fe82cb7dfa379cc
   subdirs:
   - looksee
   - looksee-trip
