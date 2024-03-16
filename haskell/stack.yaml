@@ -10,11 +10,5 @@ extra-deps:
 - bowtie-0.3.1
 - daytripper-0.3.1
 - falsify-0.2.0@r1
-# TODO switch on release
-# - looksee-0.6.0
-# - looksee-trip-0.6.0
-- git: git@github.com:ejconlon/looksee.git
-  commit: ec7aba93cb47897b8710e7f12fe82cb7dfa379cc
-  subdirs:
-  - looksee
-  - looksee-trip
+- looksee-0.6.0
+- looksee-trip-0.6.0

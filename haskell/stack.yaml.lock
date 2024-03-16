@@ -26,31 +26,19 @@ packages:
   original:
     hackage: falsify-0.2.0
 - completed:
-    commit: ec7aba93cb47897b8710e7f12fe82cb7dfa379cc
-    git: git@github.com:ejconlon/looksee.git
-    name: looksee
+    hackage: looksee-0.6.0@sha256:3d681ac6d8f23cf6c9bf2e7cd555a98e35f1c567fdaea7a9bc207b5223ed275c,3261
     pantry-tree:
-      sha256: ddc1eaf9f8c8faf65833a353577fd28ccc92a594057a2fcec63f54b0b9b4223c
-      size: 331
-    subdir: looksee
-    version: 0.6.0
+      sha256: 916891c6448851d00c7315a60a2fb16edb17f3e452c00711d110ecfed66843c5
+      size: 279
   original:
-    commit: ec7aba93cb47897b8710e7f12fe82cb7dfa379cc
-    git: git@github.com:ejconlon/looksee.git
-    subdir: looksee
+    hackage: looksee-0.6.0
 - completed:
-    commit: ec7aba93cb47897b8710e7f12fe82cb7dfa379cc
-    git: git@github.com:ejconlon/looksee.git
-    name: looksee-trip
+    hackage: looksee-trip-0.6.0@sha256:112528a545789dd993d8f3b06102b37c669460b716383be8ea3ea5cb7df80005,1807
     pantry-tree:
-      sha256: 5d0138816ec6e2d0d740a210eaa1f6faa7796dfbb0553cdabb69e3ba7e36659a
-      size: 227
-    subdir: looksee-trip
-    version: 0.6.0
+      sha256: 55e1a94a7f2b3422d00802fab873f371134aeb00e35c90c1df5831e69bbadb2a
+      size: 175
   original:
-    commit: ec7aba93cb47897b8710e7f12fe82cb7dfa379cc
-    git: git@github.com:ejconlon/looksee.git
-    subdir: looksee-trip
+    hackage: looksee-trip-0.6.0
 snapshots:
 - completed:
     sha256: 6f0bea3ba5b07360f25bc886e8cff8d847767557a492a6f7f6dcb06e3cc79ee9
