@@ -32,6 +32,7 @@ where
 
 import Bowtie (Anno (..), Memo (..), pattern MemoP)
 import Bowtie qualified as B
+import Control.Exception (Exception)
 import Control.Monad (ap, unless)
 import Control.Monad.Except (ExceptT, MonadError (..), runExceptT)
 import Control.Monad.Identity (Identity (..))
@@ -42,6 +43,7 @@ import Data.Scientific (Scientific)
 import Data.Sequence (Seq (..))
 import Data.Sequence qualified as Seq
 import Data.Text (Text)
+import Data.Typeable (Typeable)
 import Mello.Syntax (Atom (..), AtomType (..), Brace, SexpF (..), SexpType (..), Symbol (..))
 
 data MatchErr e r
@@ -53,11 +55,15 @@ data MatchErr e r
   | MatchErrEmbed !e
   deriving stock (Eq, Ord, Show)
 
+instance (Typeable e, Show e, Typeable r, Show r) => Exception (MatchErr e r)
+
 newtype LocMatchErr e k = LocMatchErr
   { unLocMatchErr :: Anno k (MatchErr e (LocMatchErr e k))
   }
   deriving stock (Show)
   deriving newtype (Eq, Ord)
+
+instance (Typeable e, Show e, Typeable k, Show k) => Exception (LocMatchErr e k)
 
 newtype MatchT e k m a = MatchT {unMatchT :: ReaderT (Memo SexpF k) (ExceptT (LocMatchErr e k) m) a}
   deriving newtype (Functor, Applicative, Monad)
