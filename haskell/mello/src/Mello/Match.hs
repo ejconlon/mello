@@ -27,10 +27,15 @@ module Mello.Match
   , strM
   , anyCharM
   , charM
+  , MatchSexp (..)
+  , fromSexpT
+  , fromSexp
+  , fromAnnoSexpT
+  , fromAnnoSexp
   )
 where
 
-import Bowtie (Anno (..), Memo (..), pattern MemoP)
+import Bowtie (Anno (..), Memo (..), mkMemo, pattern MemoP)
 import Bowtie qualified as B
 import Control.Exception (Exception)
 import Control.Monad (ap, unless)
@@ -44,7 +49,7 @@ import Data.Sequence (Seq (..))
 import Data.Sequence qualified as Seq
 import Data.Text (Text)
 import Data.Typeable (Typeable)
-import Mello.Syntax (Atom (..), AtomType (..), Brace, SexpF (..), SexpType (..), Symbol (..))
+import Mello.Syntax (Atom (..), AtomType (..), Brace, Sexp, SexpF (..), SexpType (..), Symbol (..))
 
 data MatchErr e r
   = MatchErrType !SexpType
@@ -156,7 +161,7 @@ data S k = S !Int !(Seq (Memo SexpF k))
 listM :: (Monad m) => Brace -> SeqMatchT e k m a -> MatchT e k m a
 listM = listFromM 0
 
--- helper for listFromM, but needs type sig
+-- heuper for listFromM, but needs type sig
 goSeqX :: (Monad m) => SeqMatchT e k m a -> StateT (S k) (MatchT e k m) a
 goSeqX = \case
   SeqMatchPure a -> pure a
@@ -291,3 +296,18 @@ charM :: (Monad m) => Char -> MatchT e k m ()
 charM x =
   anyCharM >>= \y ->
     unless (y == x) (errM (MatchErrNotEq (AtomChar x)))
+
+class (Monad m) => MatchSexp e m a | a -> e m where
+  matchSexp :: forall k. MatchT e k m a
+
+fromSexpT :: (MatchSexp e m a) => Sexp -> m (Either (LocMatchErr e ()) a)
+fromSexpT = runMatchT matchSexp . mkMemo (const ())
+
+fromSexp :: (MatchSexp e Identity a) => Sexp -> Either (LocMatchErr e ()) a
+fromSexp = runIdentity . fromSexpT
+
+fromAnnoSexpT :: (MatchSexp e m a) => Memo SexpF k -> m (Either (LocMatchErr e k) a)
+fromAnnoSexpT = runMatchT matchSexp
+
+fromAnnoSexp :: (MatchSexp e Identity a) => Memo SexpF k -> Either (LocMatchErr e k) a
+fromAnnoSexp = runIdentity . fromAnnoSexpT

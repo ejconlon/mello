@@ -29,6 +29,7 @@ library
   exposed-modules:
       Mello.Match
       Mello.Parse
+      Mello.Print
       Mello.Recognize
       Mello.Syntax
       Mello.Text
