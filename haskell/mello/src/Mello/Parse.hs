@@ -1,9 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Mello.Parse
-  ( LocSexp
-  , OffsetSpan
+  ( OffsetSpan
+  , OffsetSexp
+  , Loc (..)
+  , LocSpan
+  , LocSexp
   , sexpParser
+  , parseSexp
+  , parseSexpI
   )
 where
 
@@ -13,7 +18,8 @@ import Data.Char (isSpace)
 import Data.Sequence (Seq (..))
 import Data.Text (Text)
 import Data.Text qualified as T
-import Looksee (ParserT, Span (..))
+import Data.Void (Void)
+import Looksee (Err, ParserT, Span (..))
 import Looksee qualified as L
 import Mello.Syntax (Atom (..), Doc (..), SexpF (..), Symbol (..))
 import Mello.Text
@@ -47,11 +53,22 @@ explainEmptyP msg = L.explainP $ \case
   L.ReasonEmpty -> Just (msg, True)
   _ -> Nothing
 
--- The final recursive type
-
-type LocSexp = Memo SexpF OffsetSpan
+-- The final recursive types
 
 type OffsetSpan = Span Int
+
+type OffsetSexp = Memo SexpF OffsetSpan
+
+data Loc = Loc
+  { locLine :: !Int
+  , locCol :: !Int
+  , locOffset :: !Int
+  }
+  deriving stock (Eq, Ord, Show)
+
+type LocSpan = Span Loc
+
+type LocSexp = Memo SexpF LocSpan
 
 -- Specific parsers
 
@@ -116,7 +133,7 @@ docLinesP = go True Empty
         go False (acc :|> lin)
 
 -- | A parser for S-expressions
-sexpParser :: (Monad m) => ParserT e m LocSexp
+sexpParser :: (Monad m) => ParserT e m OffsetSexp
 sexpParser = stripP rootP
  where
   rootP =
@@ -147,3 +164,18 @@ sexpParser = stripP rootP
   docP = do
     doc <- docLinesP
     fmap (SexpDocF doc) rootP
+
+parseSexp :: Text -> Either (Err Void) LocSexp
+parseSexp txt = do
+  sexp <- L.parse sexpParser txt
+  let v = L.calculateLineCol txt
+      mkLoc o = let (l, c) = L.lookupLineCol o v in Loc l c o
+  pure (fmap (fmap mkLoc) sexp)
+
+parseSexpI :: Text -> IO (Either (Err Void) LocSexp)
+parseSexpI txt = do
+  let ea = parseSexp txt
+  case ea of
+    Left e -> L.printE "<interactive>" txt e
+    Right _ -> pure ()
+  pure ea
