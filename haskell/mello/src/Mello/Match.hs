@@ -16,6 +16,7 @@ module Mello.Match
   , lookM
   , elemM
   , restM
+  , repeatM
   , altM
   , anySymM
   , symM
@@ -110,6 +111,7 @@ data SeqMatchT e k m a where
   SeqMatchEmbed :: MatchT e k m (SeqMatchT e k m a) -> SeqMatchT e k m a
   SeqMatchElem :: MatchT e k m x -> (x -> SeqMatchT e k m a) -> SeqMatchT e k m a
   SeqMatchRest :: MatchT e k m x -> (Seq x -> SeqMatchT e k m a) -> SeqMatchT e k m a
+  SeqMatchRepeat :: SeqMatchT e k m x -> (Seq x -> SeqMatchT e k m a) -> SeqMatchT e k m a
 
 type SeqMatchM e k = SeqMatchT e k Identity
 
@@ -121,6 +123,7 @@ instance (Functor m) => Functor (SeqMatchT e k m) where
       SeqMatchEmbed mr -> SeqMatchEmbed (fmap go mr)
       SeqMatchElem mx k -> SeqMatchElem mx (go . k)
       SeqMatchRest mx k -> SeqMatchRest mx (go . k)
+      SeqMatchRepeat mx k -> SeqMatchRepeat mx (go . k)
 
 instance (Monad m) => Applicative (SeqMatchT e k m) where
   pure = SeqMatchPure
@@ -135,6 +138,7 @@ instance (Monad m) => Monad (SeqMatchT e k m) where
       SeqMatchEmbed mr -> SeqMatchEmbed (fmap go mr)
       SeqMatchElem mx k -> SeqMatchElem mx (go . k)
       SeqMatchRest mx k -> SeqMatchRest mx (go . k)
+      SeqMatchRepeat mx k -> SeqMatchRepeat mx (go . k)
 
 annoM :: (Monad m) => MatchT e k m a -> MatchT e k m (Anno k a)
 annoM m = MatchT (asks (Anno . B.memoKey)) <*> m
@@ -178,6 +182,7 @@ goSeqX = \case
         x <- lift (MatchT (local (const c) (unMatchT mx)))
         goSeqX (k x)
   SeqMatchRest mx k -> goRestX mx k
+  SeqMatchRepeat mx k -> goRepeatX mx k
 
 -- helper for listFromM, but needs type sig
 goRestX :: (Monad m) => MatchT e k m x -> (Seq x -> SeqMatchT e k m a) -> StateT (S k) (MatchT e k m) a
@@ -191,6 +196,19 @@ goRestX mx k = go Empty
       c :<| cs' -> do
         put (S i' cs')
         x <- lift (MatchT (local (const c) (unMatchT mx)))
+        go (acc :|> x)
+
+-- TODO Better error for failure on repeat?
+-- helper for listFromM, but needs type sig
+goRepeatX :: (Monad m) => SeqMatchT e k m x -> (Seq x -> SeqMatchT e k m a) -> StateT (S k) (MatchT e k m) a
+goRepeatX mx k = go Empty
+ where
+  go !acc = do
+    S _ cs <- get
+    case cs of
+      Empty -> goSeqX (k acc)
+      _ -> do
+        x <- goSeqX mx
         go (acc :|> x)
 
 listFromM :: (Monad m) => Int -> Brace -> SeqMatchT e k m a -> MatchT e k m a
@@ -212,6 +230,9 @@ elemM = (`SeqMatchElem` SeqMatchPure)
 
 restM :: MatchT e k m a -> SeqMatchT e k m (Seq a)
 restM = (`SeqMatchRest` SeqMatchPure)
+
+repeatM :: SeqMatchT e k m a -> SeqMatchT e k m (Seq a)
+repeatM = (`SeqMatchRepeat` SeqMatchPure)
 
 altM :: (Monad m) => [(Text, MatchT e k m a)] -> MatchT e k m a
 altM = go Empty
