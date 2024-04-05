@@ -27,6 +27,7 @@ module Mello.Match
   , strM
   , anyCharM
   , charM
+  , anyAtomM
   , MatchSexp (..)
   , fromSexpT
   , fromSexp
@@ -35,7 +36,7 @@ module Mello.Match
   )
 where
 
-import Bowtie (Anno (..), Memo (..), mkMemo, pattern MemoP)
+import Bowtie (Anno (..), Memo (..), mkMemo, unMkMemo, pattern MemoP)
 import Bowtie qualified as B
 import Control.Exception (Exception)
 import Control.Monad (ap, unless)
@@ -49,10 +50,11 @@ import Data.Sequence (Seq (..))
 import Data.Sequence qualified as Seq
 import Data.Text (Text)
 import Data.Typeable (Typeable)
-import Mello.Syntax (Atom (..), AtomType (..), Brace, Sexp, SexpF (..), SexpType (..), Symbol (..))
+import Mello.Syntax (Atom (..), AtomType (..), Brace, Sexp (..), SexpF (..), SexpType (..), Symbol (..))
 
 data MatchErr e r
   = MatchErrType !SexpType
+  | MatchErrTypeAtom
   | MatchErrNotEq !Atom
   | MatchErrListElem !Int
   | MatchErrListRem
@@ -297,17 +299,49 @@ charM x =
   anyCharM >>= \y ->
     unless (y == x) (errM (MatchErrNotEq (AtomChar x)))
 
-class (Monad m) => MatchSexp e m a | a -> e m where
-  matchSexp :: forall k. MatchT e k m a
+anyAtomM :: (Monad m) => MatchT e k m Atom
+anyAtomM = matchM $ \case
+  SexpAtomF a -> Right a
+  _ -> Left MatchErrTypeAtom
 
-fromSexpT :: (MatchSexp e m a) => Sexp -> m (Either (LocMatchErr e ()) a)
+class (Monad m) => MatchSexp e k m a where
+  matchSexp :: MatchT e k m a
+
+instance (Monad m) => MatchSexp e k m Sexp where
+  matchSexp = matchM (Right . Sexp . fmap unMkMemo)
+
+instance (Monad m) => MatchSexp e k m (Memo SexpF k) where
+  matchSexp = memoM (matchM Right)
+
+instance (MatchSexp e k m s) => MatchSexp e k m (Anno k s) where
+  matchSexp = annoM matchSexp
+
+instance (Monad m) => MatchSexp e k m Atom where
+  matchSexp = anyAtomM
+
+instance (Monad m) => MatchSexp e k m Symbol where
+  matchSexp = anySymM
+
+instance (Monad m) => MatchSexp e k m Integer where
+  matchSexp = anyIntM
+
+instance (Monad m) => MatchSexp e k m Scientific where
+  matchSexp = anySciM
+
+instance (Monad m) => MatchSexp e k m Text where
+  matchSexp = anyStrM
+
+instance (Monad m) => MatchSexp e k m Char where
+  matchSexp = anyCharM
+
+fromSexpT :: (MatchSexp e () m a) => Sexp -> m (Either (LocMatchErr e ()) a)
 fromSexpT = runMatchT matchSexp . mkMemo (const ())
 
-fromSexp :: (MatchSexp e Identity a) => Sexp -> Either (LocMatchErr e ()) a
+fromSexp :: (MatchSexp e () Identity a) => Sexp -> Either (LocMatchErr e ()) a
 fromSexp = runIdentity . fromSexpT
 
-fromAnnoSexpT :: (MatchSexp e m a) => Memo SexpF k -> m (Either (LocMatchErr e k) a)
+fromAnnoSexpT :: (MatchSexp e k m a) => Memo SexpF k -> m (Either (LocMatchErr e k) a)
 fromAnnoSexpT = runMatchT matchSexp
 
-fromAnnoSexp :: (MatchSexp e Identity a) => Memo SexpF k -> Either (LocMatchErr e k) a
+fromAnnoSexp :: (MatchSexp e k Identity a) => Memo SexpF k -> Either (LocMatchErr e k) a
 fromAnnoSexp = runIdentity . fromAnnoSexpT

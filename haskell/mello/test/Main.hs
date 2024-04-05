@@ -50,6 +50,6 @@ main :: IO ()
 main =
   daytripperMain $
     testGroup
-      "looksee-sexp"
+      "mello"
       [ testParsing
       ]

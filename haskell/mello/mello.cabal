@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      Mello
       Mello.Match
       Mello.Parse
       Mello.Print

@@ -15,19 +15,15 @@ module Mello.Syntax
   , pattern SexpQuote
   , pattern SexpUnquote
   , pattern SexpDoc
-  , IsSexp (..)
   )
 where
 
-import Bowtie (Anno (..), Memo (..))
-import Bowtie qualified as B
 import Data.Foldable (toList)
 import Data.Functor.Foldable (Base, Corecursive (..), Recursive (..))
 import Data.Scientific (Scientific)
 import Data.Sequence (Seq (..))
 import Data.String (IsString (..))
 import Data.Text (Text)
-import Data.Text qualified as T
 import Mello.Text (Brace (..), closeBraceChar, openBraceChar)
 import Prettyprinter (Pretty (..))
 import Prettyprinter qualified as P
@@ -199,30 +195,6 @@ class IsSexp s where
 
 instance IsSexp Sexp where
   toSexp = id
-
-instance IsSexp (Memo SexpF b) where
-  toSexp = B.unMkMemo
-
-instance (IsSexp s) => IsSexp (Anno b s) where
-  toSexp = toSexp . B.annoVal
-
-instance IsSexp Atom where
-  toSexp = Sexp . SexpAtomF
-
-instance IsSexp Integer where
-  toSexp = toSexp . AtomInt
-
-instance IsSexp Symbol where
-  toSexp = toSexp . AtomSym
-
-instance IsSexp Char where
-  toSexp = toSexp . AtomChar
-
-instance IsSexp String where
-  toSexp = toSexp . T.pack
-
-instance IsSexp Text where
-  toSexp = toSexp . AtomStr
 
 pattern SexpAtom :: Atom -> Sexp
 pattern SexpAtom x = Sexp (SexpAtomF x)
