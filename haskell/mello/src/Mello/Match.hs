@@ -11,6 +11,7 @@ module Mello.Match
   , SeqMatchM
   , annoM
   , memoM
+  , embedM
   , matchM
   , listM
   , lookM
