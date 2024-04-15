@@ -35,6 +35,7 @@ module Mello.Match
   , fromSexp
   , fromAnnoSexpT
   , fromAnnoSexp
+  , proxyM
   )
 where
 
@@ -47,6 +48,7 @@ import Control.Monad.Identity (Identity (..))
 import Control.Monad.Reader (MonadReader (..), ReaderT (..), ask, asks, local)
 import Control.Monad.State (MonadState (..), StateT, runStateT)
 import Control.Monad.Trans (MonadTrans (..))
+import Data.Proxy (Proxy)
 import Data.Scientific (Scientific)
 import Data.Sequence (Seq (..))
 import Data.Sequence qualified as Seq
@@ -367,3 +369,6 @@ fromAnnoSexpT = runMatchT matchSexp
 
 fromAnnoSexp :: (MatchSexp e k Identity a) => Memo SexpF k -> Either (LocMatchErr e k) a
 fromAnnoSexp = runIdentity . fromAnnoSexpT
+
+proxyM :: (MatchSexp e k m a) =>  Proxy a -> MatchT e k m a
+proxyM = const matchSexp
