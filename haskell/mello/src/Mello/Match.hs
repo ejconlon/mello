@@ -370,5 +370,5 @@ fromAnnoSexpT = runMatchT matchSexp
 fromAnnoSexp :: (MatchSexp e k Identity a) => Memo SexpF k -> Either (LocMatchErr e k) a
 fromAnnoSexp = runIdentity . fromAnnoSexpT
 
-proxyM :: (MatchSexp e k m a) =>  Proxy a -> MatchT e k m a
+proxyM :: (MatchSexp e k m a) => Proxy a -> MatchT e k m a
 proxyM = const matchSexp

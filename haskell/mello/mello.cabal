@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           mello
-version:        0.6.0
+version:        0.1.0
 synopsis:       No-fuss syntax with s-expressions
 description:    Please see the README on GitHub at <https://github.com/ejconlon/mello#readme>
 category:       Parsing
@@ -70,7 +70,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -fno-warn-unused-top-binds
   build-depends:
       base >=4.12 && <5
-    , bowtie ==0.3.*
+    , bowtie ==0.4.*
     , containers ==0.6.*
     , foldl ==1.4.*
     , looksee ==0.6.*
@@ -120,7 +120,7 @@ test-suite mello-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -fno-warn-unused-top-binds -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.12 && <5
-    , bowtie ==0.3.*
+    , bowtie ==0.4.*
     , containers ==0.6.*
     , daytripper ==0.3.*
     , foldl ==1.4.*

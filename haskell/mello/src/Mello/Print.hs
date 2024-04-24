@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Mello.Print
   ( ToSexp (..)
   , toSexpDoc
@@ -5,11 +7,13 @@ module Mello.Print
   )
 where
 
-import Bowtie (Anno (..), Memo, unMkMemo)
+import Bowtie.Anno (Anno (..))
+import Bowtie.Fix (Fix (..))
+import Bowtie.Memo (Memo, memoVal)
 import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Mello.Syntax (Atom (..), Sexp, SexpF, Symbol, pattern SexpAtom)
+import Mello.Syntax (Atom (..), Sexp (..), Symbol, pattern SexpAtom)
 import Prettyprinter (Doc, defaultLayoutOptions, layoutSmart, pretty)
 import Prettyprinter.Render.Text (renderStrict)
 
@@ -19,11 +23,14 @@ class ToSexp a where
 instance ToSexp Sexp where
   toSexp = id
 
-instance ToSexp (Memo SexpF k) where
-  toSexp = unMkMemo
+instance (Functor f, ToSexp (f Sexp)) => ToSexp (Fix f) where
+  toSexp = toSexp . fmap toSexp . unFix
 
 instance (ToSexp s) => ToSexp (Anno k s) where
   toSexp = toSexp . annoVal
+
+instance (Functor f, ToSexp (f Sexp)) => ToSexp (Memo f k) where
+  toSexp = toSexp . fmap toSexp . memoVal
 
 instance ToSexp Atom where
   toSexp = SexpAtom

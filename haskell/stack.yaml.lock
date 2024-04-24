@@ -5,12 +5,12 @@
 
 packages:
 - completed:
-    hackage: bowtie-0.3.1@sha256:75386b80c198e948c36e3647df9619f48fcaaf3cd38edafa66bc4a0614fbe613,1848
+    hackage: bowtie-0.4.0@sha256:e64019d9a50df855ea74e1260e2991cc9f79dc489f7ec75996664c067365ba92,2062
     pantry-tree:
-      sha256: 0164d98ecc676e9b95dddc53dc175888213c8c957db114d3748db755ecca9658
-      size: 221
+      sha256: 84b4615719948835d4982d39f6d4dc0272909f79998b6f796cfffca3aa7968a8
+      size: 693
   original:
-    hackage: bowtie-0.3.1
+    hackage: bowtie-0.4.0
 - completed:
     hackage: daytripper-0.3.1@sha256:225a6e9348c2b5b6e0a55d408559b55df06f1365d5741d2f9d1856d8632769ae,2985
     pantry-tree:
@@ -41,7 +41,7 @@ packages:
     hackage: looksee-trip-0.6.0
 snapshots:
 - completed:
-    sha256: 6f0bea3ba5b07360f25bc886e8cff8d847767557a492a6f7f6dcb06e3cc79ee9
-    size: 712905
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/13.yaml
-  original: lts-22.13
+    sha256: 9bebedd3de0195aa01fd55de7f6d4446667440297a7315e69cd72c2610af265f
+    size: 713338
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/18.yaml
+  original: lts-22.18
