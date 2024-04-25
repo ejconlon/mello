@@ -55,7 +55,7 @@ import Data.Sequence (Seq (..))
 import Data.Sequence qualified as Seq
 import Data.Text (Text)
 import Data.Typeable (Typeable)
-import Mello.Syntax (Atom (..), AtomType (..), Brace, Sexp (..), SexpF (..), SexpType (..), Symbol (..))
+import Mello.Syntax (Atom (..), AtomType (..), Brace, Sexp (..), SexpF (..), SexpType (..), Sym (..))
 
 data MatchErr e r
   = MatchErrType !SexpType
@@ -265,12 +265,12 @@ lookM b0 as0 = goRoot
             Left e -> goAlt hd (acc :|> (l, e)) as
         Left e -> goAlt hd (acc :|> (l, e)) as
 
-anySymM :: (Monad m) => MatchT e k m Symbol
+anySymM :: (Monad m) => MatchT e k m Sym
 anySymM = matchM $ \case
   SexpAtomF (AtomSym y) -> Right y
   _ -> Left (MatchErrType (SexpTypeAtom AtomTypeSym))
 
-symM :: (Monad m) => Symbol -> MatchT e k m ()
+symM :: (Monad m) => Sym -> MatchT e k m ()
 symM x =
   anySymM >>= \y ->
     unless (y == x) (errM (MatchErrNotEq (AtomSym x)))
@@ -335,7 +335,7 @@ instance (MatchSexp e k m s) => MatchSexp e k m (Anno k s) where
 instance (Monad m) => MatchSexp e k m Atom where
   matchSexp = anyAtomM
 
-instance (Monad m) => MatchSexp e k m Symbol where
+instance (Monad m) => MatchSexp e k m Sym where
   matchSexp = anySymM
 
 instance (Monad m) => MatchSexp e k m Integer where

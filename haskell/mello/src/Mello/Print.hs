@@ -13,7 +13,7 @@ import Bowtie.Memo (Memo, memoVal)
 import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Mello.Syntax (Atom (..), Sexp (..), Symbol, pattern SexpAtom)
+import Mello.Syntax (Atom (..), Sexp (..), Sym, pattern SexpAtom)
 import Prettyprinter (Doc, defaultLayoutOptions, layoutSmart, pretty)
 import Prettyprinter.Render.Text (renderStrict)
 
@@ -35,7 +35,7 @@ instance (Functor f, ToSexp (f Sexp)) => ToSexp (Memo f k) where
 instance ToSexp Atom where
   toSexp = SexpAtom
 
-instance ToSexp Symbol where
+instance ToSexp Sym where
   toSexp = SexpAtom . AtomSym
 
 instance ToSexp Integer where

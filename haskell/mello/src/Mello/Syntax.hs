@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Mello.Syntax
-  ( Symbol (..)
+  ( Sym (..)
   , Atom (..)
   , AtomType (..)
   , Brace (..)
@@ -28,13 +28,13 @@ import Mello.Text (Brace (..), closeBraceChar, openBraceChar)
 import Prettyprinter (Pretty (..))
 import Prettyprinter qualified as P
 
-newtype Symbol = Symbol {unSymbol :: Text}
+newtype Sym = Sym {unSym :: Text}
   deriving stock (Show)
   deriving newtype (Eq, Ord, IsString, Pretty)
 
 -- | Leaves of S-expression trees
 data Atom
-  = AtomSym !Symbol
+  = AtomSym !Sym
   | AtomInt !Integer
   | AtomSci !Scientific
   | AtomStr !Text

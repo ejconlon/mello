@@ -21,7 +21,7 @@ import Data.Text qualified as T
 import Data.Void (Void)
 import Looksee (Err, ParserT, Span (..))
 import Looksee qualified as L
-import Mello.Syntax (Atom (..), Doc (..), SexpF (..), Symbol (..))
+import Mello.Syntax (Atom (..), Doc (..), SexpF (..), Sym (..))
 import Mello.Text
   ( Brace
   , closeBraceChar
@@ -100,8 +100,8 @@ stripP, stripEndP :: (Monad m) => ParserT e m a -> ParserT e m a
 stripP p = spaceP *> p <* spaceP
 stripEndP p = p <* spaceP
 
-symP :: (Monad m) => ParserT e m Symbol
-symP = fmap Symbol (cons1P isSymStart isSymCont)
+symP :: (Monad m) => ParserT e m Sym
+symP = fmap Sym (cons1P isSymStart isSymCont)
 
 charLitP :: (Monad m) => ParserT e m Char
 charLitP = L.charP_ '\'' *> L.headP <* L.charP_ '\''
