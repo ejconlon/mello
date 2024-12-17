@@ -31,6 +31,9 @@ module Mello.Match
   , anyCharM
   , charM
   , anyAtomM
+  , quoteM
+  , unquoteM
+  , docM
   , MatchSexp (..)
   , fromSexpT
   , fromSexp
@@ -55,11 +58,14 @@ import Data.Sequence (Seq (..))
 import Data.Sequence qualified as Seq
 import Data.Text (Text)
 import Data.Typeable (Typeable)
-import Mello.Syntax (Atom (..), AtomType (..), Brace, Sexp (..), SexpF (..), SexpType (..), Sym (..))
+import Mello.Syntax (Atom (..), AtomType (..), Brace, Doc, Sexp (..), SexpF (..), SexpType (..), Sym (..))
 
 data MatchErr e r
   = MatchErrType !SexpType
   | MatchErrTypeAtom
+  | MatchErrTypeQuote
+  | MatchErrTypeUnquote
+  | MatchErrTypeDoc
   | MatchErrNotEq !Atom
   | MatchErrListElem !Int
   | MatchErrListRem
@@ -319,6 +325,24 @@ anyAtomM :: (Monad m) => MatchT e k m Atom
 anyAtomM = matchM $ \case
   SexpAtomF a -> Right a
   _ -> Left MatchErrTypeAtom
+
+quoteM :: (Monad m) => MatchT e k m (Memo SexpF k)
+quoteM = matchM $ \case
+  SexpQuoteF x -> Right x
+  _ -> Left MatchErrTypeQuote
+
+unquoteM :: (Monad m) => MatchT e k m (Memo SexpF k)
+unquoteM = matchM $ \case
+  SexpUnquoteF x -> Right x
+  _ -> Left MatchErrTypeQuote
+
+docM :: (Monad m) => MatchT e k m a -> MatchT e k m (Doc, a)
+docM m = do
+  (d, x) <- matchM $ \case
+    SexpDocF d x -> Right (d, x)
+    _ -> Left MatchErrTypeDoc
+  a <- MatchT (local (const x) (unMatchT m))
+  pure (d, a)
 
 class (Monad m) => MatchSexp e k m a where
   matchSexp :: MatchT e k m a
