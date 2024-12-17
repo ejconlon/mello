@@ -1,11 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
 name:           mello
-version:        0.1.0
+version:        0.2.0
 synopsis:       No-fuss syntax with s-expressions
 description:    Please see the README on GitHub at <https://github.com/ejconlon/mello#readme>
 category:       Parsing
@@ -73,12 +73,12 @@ library
     , bowtie ==0.4.*
     , containers ==0.6.*
     , foldl ==1.4.*
-    , looksee ==0.6.*
+    , looksee ==0.7.*
     , mtl >=2.3 && <2.5
     , prettyprinter ==1.7.*
     , recursion-schemes ==5.2.*
     , scientific ==0.3.*
-    , text ==2.0.*
+    , text >=2.0 && <2.2
   default-language: GHC2021
 
 test-suite mello-test
@@ -122,16 +122,15 @@ test-suite mello-test
       base >=4.12 && <5
     , bowtie ==0.4.*
     , containers ==0.6.*
-    , daytripper ==0.3.*
+    , daytripper ==0.4.*
     , foldl ==1.4.*
-    , looksee ==0.6.*
-    , looksee-trip ==0.6.*
+    , looksee ==0.7.*
+    , looksee-trip ==0.7.*
     , mello
     , mtl >=2.3 && <2.5
     , prettyprinter ==1.7.*
+    , prop-unit ==0.2.*
     , recursion-schemes ==5.2.*
     , scientific ==0.3.*
-    , tasty >=1.4.3 && <1.5
-    , tasty-hunit ==0.10.*
-    , text ==2.0.*
+    , text >=2.0 && <2.2
   default-language: GHC2021

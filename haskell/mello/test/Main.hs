@@ -18,18 +18,18 @@ import Mello.Syntax
   , pattern SexpQuote
   , pattern SexpUnquote
   )
-import Test.Daytripper (MonadExpect, daytripperMain, mkUnitRT, testRT)
+import PropUnit (MonadTest, TestName, TestTree, testGroup)
+import Test.Daytripper (daytripperMain, mkUnitRT, testRT)
 import Test.Looksee.Trip (ExpectP, cmpEq, expectParsePretty, expectRendered)
-import Test.Tasty (TestName, TestTree, testGroup)
 
-expectParseSexp :: (MonadExpect m) => ExpectP Void m Sexp
+expectParseSexp :: (MonadTest m) => ExpectP Void m Sexp
 expectParseSexp = expectParsePretty (fmap unMkMemo sexpParser) cmpEq
 
 parseCase :: TestName -> Sexp -> TestTree
-parseCase n = testRT . mkUnitRT n expectParseSexp
+parseCase n = testRT undefined . mkUnitRT n expectParseSexp
 
 parseCaseAs :: TestName -> Text -> Sexp -> TestTree
-parseCaseAs n t = testRT . mkUnitRT n (expectRendered t expectParseSexp)
+parseCaseAs n t = testRT undefined . mkUnitRT n (expectRendered t expectParseSexp)
 
 testParsing :: TestTree
 testParsing =
@@ -48,7 +48,7 @@ testParsing =
 
 main :: IO ()
 main =
-  daytripperMain $
+  daytripperMain $ \_ ->
     testGroup
       "mello"
       [ testParsing
