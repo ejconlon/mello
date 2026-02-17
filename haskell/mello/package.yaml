@@ -1,5 +1,5 @@
 name: mello
-version: 0.2.1
+version: 0.3.0
 
 github: ejconlon/mello
 license: BSD3
@@ -19,10 +19,10 @@ extra-source-files:
 
 dependencies:
 - base >= 4.12 && < 5
-- bowtie >= 0.4 && < 0.5
-- containers >= 0.6 && < 0.7
+- bowtie >= 0.7 && < 0.8
+- containers >= 0.6 && < 0.8
 - foldl >= 1.4 && < 1.5
-- looksee >= 0.7 && < 0.8
+- looksee >= 0.8 && < 0.9
 - mtl >= 2.3 && < 2.5
 - prettyprinter >= 1.7 && < 1.8
 - recursion-schemes >= 5.2 && < 5.3
@@ -42,7 +42,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - mello
-    - looksee-trip >= 0.7 && < 0.8
-    - daytripper >= 0.4 && < 0.5
-    - prop-unit >= 0.2 && < 0.3
+    - looksee-trip >= 0.8 && < 0.9
+    - daytripper >= 1.0 && < 1.1
+    - prop-unit >= 1.0 && < 1.1
 
