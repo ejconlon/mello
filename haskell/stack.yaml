@@ -8,7 +8,7 @@ packages:
 
 extra-deps:
 - bowtie-0.7.0
-- daytripper-1.0.0
+- daytripper-1.0.1
 - looksee-0.8.2
 - looksee-trip-0.8.0
 - prop-unit-1.0.1
