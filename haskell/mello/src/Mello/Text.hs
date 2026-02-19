@@ -75,7 +75,6 @@ isSymCont c =
       || isCharStart c
       || isQuoteStart c
       || isUnquoteStart c
-      || isDigit c
 isListStart c = c == '(' || c == '{' || c == '['
 isListEnd c = c == ')' || c == '}' || c == ']'
 isCharStart c = c == '\''

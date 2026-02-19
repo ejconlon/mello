@@ -14,7 +14,7 @@ where
 
 import Bowtie (Memo, pattern MemoP)
 import Control.Monad (guard, unless, void)
-import Data.Char (isSpace)
+import Data.Char (isDigit, isSpace)
 import Data.Sequence (Seq (..))
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -28,7 +28,6 @@ import Mello.Text
   , isAtomStart
   , isCharStart
   , isListStart
-  , isNumStart
   , isQuoteStart
   , isStringStart
   , isSymCont
@@ -153,11 +152,18 @@ sexpParser = stripP rootP
     pure (SexpListF b ss)
   quoteP = L.charP_ '`' *> fmap SexpQuoteF rootP
   unquoteP = L.charP_ ',' *> fmap SexpUnquoteF rootP
+  guardNumStartP = do
+    c <- L.headP
+    if isDigit c
+      then pure ()
+      else do
+        guard (c == '-')
+        void (L.headP >>= guard . isDigit)
   atomP =
     SexpAtomF
       <$> L.commitP
-        [ (guard1P isSymStart, L.labelP "sym" (fmap AtomSym symP))
-        , (guard1P isNumStart, L.labelP "num" (fmap (either AtomInt AtomSci) L.numP))
+        [ (guardNumStartP, L.labelP "num" (fmap (either AtomInt AtomSci) L.numP))
+        , (guard1P isSymStart, L.labelP "sym" (fmap AtomSym symP))
         , (guard1P isStringStart, L.labelP "str" (fmap AtomStr stringLitP))
         , (guard1P isCharStart, L.labelP "char" (fmap AtomChar charLitP))
         ]

@@ -44,6 +44,13 @@ testParsing =
     , parseCaseAs "unquote" ",1" (SexpUnquote 1)
     , parseCaseAs "list" "(1 2)" (SexpList BraceParen [1, 2])
     , parseCaseAs "doc" ";|X\n;Y\n1" (SexpDoc (Doc ["X", "Y"]) 1)
+    , parseCaseAs "atom int neg" "-1" (SexpAtom (AtomInt (-1)))
+    , parseCaseAs "atom sym special 1" "_y-3z" (SexpAtom (AtomSym "_y-3z"))
+    , parseCaseAs "atom sym special 2" ">=" (SexpAtom (AtomSym ">="))
+    , parseCaseAs "atom sym special 3" "<=" (SexpAtom (AtomSym "<="))
+    , parseCaseAs "atom sym special 4" "=>" (SexpAtom (AtomSym "=>"))
+    , parseCaseAs "atom sym special 5" "->" (SexpAtom (AtomSym "->"))
+    , parseCaseAs "atom sym special 6" ":x" (SexpAtom (AtomSym ":x"))
     ]
 
 main :: IO ()
