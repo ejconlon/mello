@@ -45,7 +45,7 @@ where
 
 import Bowtie (Anno (..), Memo (..), mkMemo, unMkMemo, pattern MemoP)
 import Bowtie qualified as B
-import Control.Exception (Exception)
+import Control.Exception (Exception (..))
 import Control.Monad (ap, unless)
 import Control.Monad.Except (ExceptT, MonadError (..), runExceptT)
 import Control.Monad.Identity (Identity (..))
@@ -56,7 +56,10 @@ import Data.Proxy (Proxy)
 import Data.Scientific (Scientific)
 import Data.Sequence (Seq (..))
 import Data.Sequence qualified as Seq
+import Data.Foldable (toList)
+import Data.List (intercalate, nub)
 import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Typeable (Typeable)
 import Mello.Syntax (Atom (..), AtomType (..), Brace, Doc, Sexp (..), SexpF (..), SexpType (..), Sym (..))
 
@@ -73,7 +76,20 @@ data MatchErr e r
   | MatchErrEmbed !e
   deriving stock (Eq, Ord, Show)
 
-instance (Typeable e, Show e, Typeable r, Show r) => Exception (MatchErr e r)
+instance (Typeable e, Show e, Typeable r, Exception r) => Exception (MatchErr e r) where
+  displayException = \case
+    MatchErrType st -> "expected " <> displaySexpType st
+    MatchErrTypeAtom -> "expected atom"
+    MatchErrTypeQuote -> "expected quote"
+    MatchErrTypeUnquote -> "expected unquote"
+    MatchErrTypeDoc -> "expected doc"
+    MatchErrNotEq a -> "expected " <> show a
+    MatchErrListElem i -> "in list element " <> show i
+    MatchErrListRem -> "unexpected remaining list elements"
+    MatchErrAlt alts ->
+      let reasons = nub (map (displayException . snd) (toList alts))
+       in "no matching alternative: " <> intercalate "; " reasons
+    MatchErrEmbed e -> show e
 
 newtype LocMatchErr e k = LocMatchErr
   { unLocMatchErr :: Anno k (MatchErr e (LocMatchErr e k))
@@ -81,7 +97,20 @@ newtype LocMatchErr e k = LocMatchErr
   deriving stock (Show)
   deriving newtype (Eq, Ord)
 
-instance (Typeable e, Show e, Typeable k, Show k) => Exception (LocMatchErr e k)
+instance (Typeable e, Show e, Typeable k, Show k) => Exception (LocMatchErr e k) where
+  displayException (LocMatchErr (Anno _ err)) = displayException err
+
+displaySexpType :: SexpType -> String
+displaySexpType = \case
+  SexpTypeAtom AtomTypeSym -> "symbol"
+  SexpTypeAtom AtomTypeInt -> "integer"
+  SexpTypeAtom AtomTypeSci -> "number"
+  SexpTypeAtom AtomTypeStr -> "string"
+  SexpTypeAtom AtomTypeChar -> "char"
+  SexpTypeList _ -> "list"
+  SexpTypeQuote -> "quote"
+  SexpTypeUnquote -> "unquote"
+  SexpTypeDoc -> "doc"
 
 newtype MatchT e k m a = MatchT {unMatchT :: ReaderT (Memo SexpF k) (ExceptT (LocMatchErr e k) m) a}
   deriving newtype (Functor, Applicative, Monad)
