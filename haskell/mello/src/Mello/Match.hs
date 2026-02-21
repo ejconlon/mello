@@ -59,7 +59,6 @@ import Data.Sequence qualified as Seq
 import Data.Foldable (toList)
 import Data.List (intercalate, nub)
 import Data.Text (Text)
-import Data.Text qualified as T
 import Data.Typeable (Typeable)
 import Mello.Syntax (Atom (..), AtomType (..), Brace, Doc, Sexp (..), SexpF (..), SexpType (..), Sym (..))
 
