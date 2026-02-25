@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Mello.Parse
@@ -12,6 +13,8 @@ module Mello.Parse
   )
 where
 
+import Data.Hashable (Hashable)
+import GHC.Generics (Generic)
 import Bowtie (Memo, pattern MemoP)
 import Control.Monad (guard, unless, void)
 import Data.Char (isDigit, isSpace)
@@ -63,7 +66,8 @@ data Loc = Loc
   , locCol :: !Int
   , locOffset :: !Int
   }
-  deriving stock (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving anyclass (Hashable)
 
 type LocSpan = Span Loc
 
