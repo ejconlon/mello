@@ -59,7 +59,7 @@ import Data.Proxy (Proxy)
 import Data.Scientific (Scientific)
 import Data.Sequence (Seq (..))
 import Data.Sequence qualified as Seq
-import Data.Text (Text)
+import Data.Text (Text, unpack)
 import Data.Typeable (Typeable)
 import Mello.Syntax (Atom (..), AtomType (..), Brace, Doc, Sexp (..), SexpF (..), SexpType (..), Sym (..))
 
@@ -83,12 +83,12 @@ instance (Typeable e, Show e, Typeable r, Exception r) => Exception (MatchErr e 
     MatchErrTypeQuote -> "expected quote"
     MatchErrTypeUnquote -> "expected unquote"
     MatchErrTypeDoc -> "expected doc"
-    MatchErrNotEq a -> "expected " <> show a
-    MatchErrListElem i -> "in list element " <> show i
+    MatchErrNotEq a -> "expected " <> displayAtom a
+    MatchErrListElem i -> "list too short: need element at position " <> show i
     MatchErrListRem -> "unexpected remaining list elements"
     MatchErrAlt alts ->
-      let reasons = nub (map (displayException . snd) (toList alts))
-      in  "no matching alternative: " <> intercalate "; " reasons
+      let items = map (\(l, r) -> unpack l <> ": " <> displayException r) (toList alts)
+      in  "no match (" <> intercalate ", " (nub items) <> ")"
     MatchErrEmbed e -> show e
 
 newtype LocMatchErr e k = LocMatchErr
@@ -111,6 +111,14 @@ displaySexpType = \case
   SexpTypeQuote -> "quote"
   SexpTypeUnquote -> "unquote"
   SexpTypeDoc -> "doc"
+
+displayAtom :: Atom -> String
+displayAtom = \case
+  AtomSym s -> unpack (unSym s)
+  AtomInt i -> show i
+  AtomSci s -> show s
+  AtomStr s -> show s
+  AtomChar c -> show c
 
 newtype MatchT e k m a = MatchT {unMatchT :: ReaderT (Memo SexpF k) (ExceptT (LocMatchErr e k) m) a}
   deriving newtype (Functor, Applicative, Monad)
