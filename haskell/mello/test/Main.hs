@@ -5,6 +5,7 @@ module Main (main) where
 
 import Bowtie (unMkMemo)
 import Control.Exception (displayException)
+import Control.Monad (void)
 import Data.List (isInfixOf)
 import Data.Text (Text)
 import Data.Void (Void)
@@ -90,11 +91,11 @@ testDisplayException =
     , testUnit "not equal: expected atom" $
         assertErrContains "expected foo" (trySexp (symM "foo") "bar")
     , testUnit "alt with labels" $ do
-        let m = altM [("sym", anySymM >> pure ()), ("int", anyIntM >> pure ())]
+        let m = altM [("sym", void anySymM), ("int", void anyIntM)]
         assertErrContains "sym:" (trySexp m "(x)")
         assertErrContains "int:" (trySexp m "(x)")
     , testUnit "alt: no match" $
-        assertErrContains "no match" (trySexp (altM [("sym", anySymM >> pure ())]) "(x)")
+        assertErrContains "no match" (trySexp (altM [("sym", void anySymM)]) "(x)")
     ]
 
 main :: IO ()
