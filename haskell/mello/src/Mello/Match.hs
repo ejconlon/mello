@@ -19,6 +19,7 @@ module Mello.Match
   , restM
   , repeatM
   , remainingM
+  , peekM
   , altM
   , anySymM
   , symM
@@ -52,12 +53,12 @@ import Control.Monad.Identity (Identity (..))
 import Control.Monad.Reader (MonadReader (..), ReaderT (..), ask, asks, local)
 import Control.Monad.State (MonadState (..), StateT, runStateT)
 import Control.Monad.Trans (MonadTrans (..))
+import Data.Foldable (toList)
+import Data.List (intercalate, nub)
 import Data.Proxy (Proxy)
 import Data.Scientific (Scientific)
 import Data.Sequence (Seq (..))
 import Data.Sequence qualified as Seq
-import Data.Foldable (toList)
-import Data.List (intercalate, nub)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Mello.Syntax (Atom (..), AtomType (..), Brace, Doc, Sexp (..), SexpF (..), SexpType (..), Sym (..))
@@ -87,7 +88,7 @@ instance (Typeable e, Show e, Typeable r, Exception r) => Exception (MatchErr e 
     MatchErrListRem -> "unexpected remaining list elements"
     MatchErrAlt alts ->
       let reasons = nub (map (displayException . snd) (toList alts))
-       in "no matching alternative: " <> intercalate "; " reasons
+      in  "no matching alternative: " <> intercalate "; " reasons
     MatchErrEmbed e -> show e
 
 newtype LocMatchErr e k = LocMatchErr
@@ -150,6 +151,7 @@ data SeqMatchT e k m a where
   SeqMatchElem :: MatchT e k m x -> (x -> SeqMatchT e k m a) -> SeqMatchT e k m a
   SeqMatchRepeat :: SeqMatchT e k m x -> (Seq x -> SeqMatchT e k m a) -> SeqMatchT e k m a
   SeqMatchRemaining :: (Int -> SeqMatchT e k m a) -> SeqMatchT e k m a
+  SeqMatchPeek :: MatchT e k m x -> (Maybe x -> SeqMatchT e k m a) -> SeqMatchT e k m a
 
 type SeqMatchM e k = SeqMatchT e k Identity
 
@@ -162,6 +164,7 @@ instance (Functor m) => Functor (SeqMatchT e k m) where
       SeqMatchElem mx k -> SeqMatchElem mx (go . k)
       SeqMatchRepeat mx k -> SeqMatchRepeat mx (go . k)
       SeqMatchRemaining k -> SeqMatchRemaining (go . k)
+      SeqMatchPeek mx k -> SeqMatchPeek mx (go . k)
 
 instance (Monad m) => Applicative (SeqMatchT e k m) where
   pure = SeqMatchPure
@@ -177,6 +180,7 @@ instance (Monad m) => Monad (SeqMatchT e k m) where
       SeqMatchElem mx k -> SeqMatchElem mx (go . k)
       SeqMatchRepeat mx k -> SeqMatchRepeat mx (go . k)
       SeqMatchRemaining k -> SeqMatchRemaining (go . k)
+      SeqMatchPeek mx k -> SeqMatchPeek mx (go . k)
 
 annoM :: (Monad m) => MatchT e k m a -> MatchT e k m (Anno k a)
 annoM m = MatchT (asks (Anno . B.memoKey)) <*> m
@@ -223,6 +227,15 @@ goSeqX = \case
   SeqMatchRemaining k -> do
     S _ cs <- get
     goSeqX (k (Seq.length cs))
+  SeqMatchPeek mx k -> do
+    S _ cs <- get
+    case cs of
+      Empty -> goSeqX (k Nothing)
+      c :<| _ -> do
+        res <- lift (lift (runMatchT mx c))
+        case res of
+          Right x -> goSeqX (k (Just x))
+          Left _ -> goSeqX (k Nothing)
 
 -- TODO Better error for failure on repeat?
 -- helper for listFromM, but needs type sig
@@ -262,6 +275,11 @@ repeatM = (`SeqMatchRepeat` SeqMatchPure)
 
 remainingM :: SeqMatchT e k m Int
 remainingM = SeqMatchRemaining SeqMatchPure
+
+-- | Peek at the next element without consuming it. Returns @Just x@ if
+-- the element matches, @Nothing@ if the sequence is empty or the match fails.
+peekM :: MatchT e k m a -> SeqMatchT e k m (Maybe a)
+peekM mx = SeqMatchPeek mx SeqMatchPure
 
 altM :: (Monad m) => [(Text, MatchT e k m a)] -> MatchT e k m a
 altM = go Empty

@@ -13,15 +13,15 @@ module Mello.Parse
   )
 where
 
-import Data.Hashable (Hashable)
-import GHC.Generics (Generic)
 import Bowtie (Memo, pattern MemoP)
 import Control.Monad (guard, unless, void)
 import Data.Char (isDigit, isSpace)
+import Data.Hashable (Hashable)
 import Data.Sequence (Seq (..))
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Void (Void)
+import GHC.Generics (Generic)
 import Looksee (Err, ParserT, Span (..))
 import Looksee qualified as L
 import Mello.Syntax (Atom (..), Doc (..), SexpF (..), Sym (..))
