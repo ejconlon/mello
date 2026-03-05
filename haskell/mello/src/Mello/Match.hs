@@ -1,7 +1,22 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Mello.Match
-  ( MatchErr (..)
+  ( ExpectElem (..)
+  , Expect (..)
+  , expectSym
+  , expectAnySym
+  , expectAnyInt
+  , expectAnySci
+  , expectAnyStr
+  , expectAnyChar
+  , expectAnyAtom
+  , expectList
+  , expectQuote
+  , expectUnquote
+  , expectDoc
+  , expectDesc
+  , displayExpect
+  , MatchErr (..)
   , LocMatchErr (..)
   , MatchT
   , MatchM
@@ -54,14 +69,120 @@ import Control.Monad.Reader (MonadReader (..), ReaderT (..), ask, asks, local)
 import Control.Monad.State (MonadState (..), StateT, runStateT)
 import Control.Monad.Trans (MonadTrans (..))
 import Data.Foldable (toList)
-import Data.List (intercalate, nub)
+import Data.List (intercalate)
 import Data.Proxy (Proxy)
 import Data.Scientific (Scientific)
 import Data.Sequence (Seq (..))
 import Data.Sequence qualified as Seq
+import Data.Set (Set)
+import Data.Set qualified as Set
 import Data.Text (Text, unpack)
 import Data.Typeable (Typeable)
 import Mello.Syntax (Atom (..), AtomType (..), Brace, Doc, Sexp (..), SexpF (..), SexpType (..), Sym (..))
+
+-- | Defunctionalized expectation element describing what a matcher branch expects.
+data ExpectElem
+  = ExpectSym !Sym
+  | ExpectAnySym
+  | ExpectAnyInt
+  | ExpectAnySci
+  | ExpectAnyStr
+  | ExpectAnyChar
+  | ExpectAnyAtom
+  | ExpectList !Brace
+  | ExpectQuote
+  | ExpectUnquote
+  | ExpectDoc
+  | ExpectDesc !Text
+  deriving stock (Eq, Ord, Show)
+
+newtype Expect = Expect {unExpect :: Set ExpectElem}
+  deriving stock (Show)
+  deriving newtype (Eq, Ord, Semigroup, Monoid)
+
+expectSym :: Sym -> Expect
+expectSym = Expect . Set.singleton . ExpectSym
+
+expectAnySym :: Expect
+expectAnySym = Expect (Set.singleton ExpectAnySym)
+
+expectAnyInt :: Expect
+expectAnyInt = Expect (Set.singleton ExpectAnyInt)
+
+expectAnySci :: Expect
+expectAnySci = Expect (Set.singleton ExpectAnySci)
+
+expectAnyStr :: Expect
+expectAnyStr = Expect (Set.singleton ExpectAnyStr)
+
+expectAnyChar :: Expect
+expectAnyChar = Expect (Set.singleton ExpectAnyChar)
+
+expectAnyAtom :: Expect
+expectAnyAtom = Expect (Set.singleton ExpectAnyAtom)
+
+expectList :: Brace -> Expect
+expectList = Expect . Set.singleton . ExpectList
+
+expectQuote :: Expect
+expectQuote = Expect (Set.singleton ExpectQuote)
+
+expectUnquote :: Expect
+expectUnquote = Expect (Set.singleton ExpectUnquote)
+
+expectDoc :: Expect
+expectDoc = Expect (Set.singleton ExpectDoc)
+
+expectDesc :: Text -> Expect
+expectDesc = Expect . Set.singleton . ExpectDesc
+
+displayExpect :: Expect -> String
+displayExpect (Expect elems) =
+  let groups = coalesce (Set.toAscList elems)
+  in  intercalate ", " groups
+
+coalesce :: [ExpectElem] -> [String]
+coalesce [] = []
+coalesce (ExpectSym s : rest) =
+  let (moreSyms, rest') = collectSyms rest
+      allSyms = s : moreSyms
+  in  case rest' of
+        (ExpectAnySym : rest'') -> "symbol" : coalesce rest''
+        _ -> renderSyms allSyms : coalesce rest'
+coalesce (ExpectAnySym : rest) = "symbol" : coalesce rest
+coalesce (ExpectAnyInt : rest) = "integer" : coalesce rest
+coalesce (ExpectAnySci : rest) = "number" : coalesce rest
+coalesce (ExpectAnyStr : rest) = "string" : coalesce rest
+coalesce (ExpectAnyChar : rest) = "character" : coalesce rest
+coalesce (ExpectAnyAtom : rest) = "atom" : coalesce rest
+coalesce (ExpectList _ : rest) = "list" : coalesce (dropWhile isExpectList rest)
+coalesce (ExpectQuote : rest) = "quoted form" : coalesce rest
+coalesce (ExpectUnquote : rest) = "unquoted form" : coalesce rest
+coalesce (ExpectDoc : rest) = "doc form" : coalesce rest
+coalesce (ExpectDesc t : rest) =
+  let (moreDescs, rest') = collectDescs rest
+      allDescs = t : moreDescs
+  in  renderDescs allDescs : coalesce rest'
+
+isExpectList :: ExpectElem -> Bool
+isExpectList (ExpectList _) = True
+isExpectList _ = False
+
+collectSyms :: [ExpectElem] -> ([Sym], [ExpectElem])
+collectSyms (ExpectSym s : rest) = let (ss, rest') = collectSyms rest in (s : ss, rest')
+collectSyms rest = ([], rest)
+
+collectDescs :: [ExpectElem] -> ([Text], [ExpectElem])
+collectDescs (ExpectDesc t : rest) = let (ts, rest') = collectDescs rest in (t : ts, rest')
+collectDescs rest = ([], rest)
+
+renderSyms :: [Sym] -> String
+renderSyms [Sym s] = "symbol '" <> unpack s <> "'"
+renderSyms ss = "symbol " <> intercalate " or " ["'" <> unpack s <> "'" | Sym s <- ss]
+
+renderDescs :: [Text] -> String
+renderDescs [t] = unpack t
+renderDescs ts = intercalate " or " (map unpack ts)
 
 data MatchErr e r
   = MatchErrType !SexpType
@@ -72,7 +193,7 @@ data MatchErr e r
   | MatchErrNotEq !Atom
   | MatchErrListElem !Int
   | MatchErrListRem
-  | MatchErrAlt !(Seq (Text, r))
+  | MatchErrAlt !(Seq (Text, Expect, r))
   | MatchErrEmbed !e
   deriving stock (Eq, Ord, Show)
 
@@ -87,8 +208,8 @@ instance (Typeable e, Show e, Typeable r, Exception r) => Exception (MatchErr e 
     MatchErrListElem i -> "list too short: need element at position " <> show i
     MatchErrListRem -> "unexpected remaining list elements"
     MatchErrAlt alts ->
-      let items = map (\(l, r) -> unpack l <> ": " <> displayException r) (toList alts)
-      in  "no match (" <> intercalate ", " (nub items) <> ")"
+      let merged = mconcat [ex | (_, ex, _) <- toList alts]
+      in  "expected one of: " <> displayExpect merged
     MatchErrEmbed e -> show e
 
 newtype LocMatchErr e k = LocMatchErr
@@ -289,19 +410,19 @@ remainingM = SeqMatchRemaining SeqMatchPure
 peekM :: MatchT e k m a -> SeqMatchT e k m (Maybe a)
 peekM mx = SeqMatchPeek mx SeqMatchPure
 
-altM :: (Monad m) => [(Text, MatchT e k m a)] -> MatchT e k m a
+altM :: (Monad m) => [(Text, Expect, MatchT e k m a)] -> MatchT e k m a
 altM = go Empty
  where
   go !acc = \case
     [] -> errM (MatchErrAlt acc)
-    (l, m) : ms -> do
+    (l, ex, m) : ms -> do
       s <- MatchT ask
       res <- lift (runMatchT m s)
       case res of
         Right a -> pure a
-        Left e -> go (acc :|> (l, e)) ms
+        Left e -> go (acc :|> (l, ex, e)) ms
 
-lookM :: (Monad m) => Brace -> [(Text, MatchT e k m (), SeqMatchT e k m a)] -> MatchT e k m a
+lookM :: (Monad m) => Brace -> [(Text, Expect, MatchT e k m (), SeqMatchT e k m a)] -> MatchT e k m a
 lookM b0 as0 = goRoot
  where
   goRoot = do
@@ -314,7 +435,7 @@ lookM b0 as0 = goRoot
       _ -> errM (MatchErrType (SexpTypeList b0))
   goAlt hd !acc = \case
     [] -> errM (MatchErrAlt acc)
-    (l, m, r) : as -> do
+    (l, ex, m, r) : as -> do
       resHd <- lift (runMatchT m hd)
       case resHd of
         Right _ -> do
@@ -322,8 +443,8 @@ lookM b0 as0 = goRoot
           resTl <- lift (runMatchT (listFromM 1 b0 r) s)
           case resTl of
             Right a -> pure a
-            Left e -> goAlt hd (acc :|> (l, e)) as
-        Left e -> goAlt hd (acc :|> (l, e)) as
+            Left e -> goAlt hd (acc :|> (l, ex, e)) as
+        Left e -> goAlt hd (acc :|> (l, ex, e)) as
 
 anySymM :: (Monad m) => MatchT e k m Sym
 anySymM = matchM $ \case

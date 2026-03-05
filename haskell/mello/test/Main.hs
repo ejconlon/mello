@@ -9,7 +9,7 @@ import Control.Monad (void)
 import Data.List (isInfixOf)
 import Data.Text (Text)
 import Data.Void (Void)
-import Mello.Match (MatchM, altM, anyIntM, anySymM, elemM, listM, runMatchM, symM)
+import Mello.Match (MatchM, altM, anyIntM, anySymM, elemM, expectAnyInt, expectAnySym, listM, runMatchM, symM)
 import Mello.Parse (LocSpan, parseSexp, sexpParser)
 import Mello.Syntax
   ( Atom (..)
@@ -91,11 +91,11 @@ testDisplayException =
     , testUnit "not equal: expected atom" $
         assertErrContains "expected foo" (trySexp (symM "foo") "bar")
     , testUnit "alt with labels" $ do
-        let m = altM [("sym", void anySymM), ("int", void anyIntM)]
-        assertErrContains "sym:" (trySexp m "(x)")
-        assertErrContains "int:" (trySexp m "(x)")
-    , testUnit "alt: no match" $
-        assertErrContains "no match" (trySexp (altM [("sym", void anySymM)]) "(x)")
+        let m = altM [("sym", expectAnySym, void anySymM), ("int", expectAnyInt, void anyIntM)]
+        assertErrContains "symbol" (trySexp m "(x)")
+        assertErrContains "integer" (trySexp m "(x)")
+    , testUnit "alt: expected one of" $
+        assertErrContains "expected one of" (trySexp (altM [("sym", expectAnySym, void anySymM)]) "(x)")
     ]
 
 main :: IO ()
