@@ -1,14 +1,21 @@
-resolver: lts-24.30
+resolver: nightly-2026-05-27
 
 ghc-options:
   "$everything": -haddock
+
+allow-newer: true
+allow-newer-deps:
+- dependent-sum
+- errata
 
 packages:
 - mello
 
 extra-deps:
-- bowtie-0.7.0
+- bowtie-0.8.0
 - daytripper-1.0.1
-- looksee-0.8.2
+- errata-0.4.0.3
+- looksee-0.8.3
 - looksee-trip-0.8.0
-- prop-unit-1.0.1
+- prop-unit-1.0.2
+- some-1.1

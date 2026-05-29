@@ -70,7 +70,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -fno-warn-unused-top-binds
   build-depends:
       base >=4.12 && <5
-    , bowtie ==0.7.*
+    , bowtie ==0.8.*
     , containers >=0.6 && <0.8
     , foldl ==1.4.*
     , hashable >=1.4 && <1.6
@@ -121,7 +121,7 @@ test-suite mello-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -fno-warn-unused-top-binds -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.12 && <5
-    , bowtie ==0.7.*
+    , bowtie ==0.8.*
     , containers >=0.6 && <0.8
     , daytripper ==1.0.*
     , foldl ==1.4.*

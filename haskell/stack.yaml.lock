@@ -5,12 +5,12 @@
 
 packages:
 - completed:
-    hackage: bowtie-0.7.0@sha256:d77a07e38870904ad90ca32f9c41a3f63ea4cd87ebbc2c51571d2a80d369edd5,2080
+    hackage: bowtie-0.8.0@sha256:0b79aacbcf189aa938722421f39476b72665c3cdf65047a66d48a7bcbd40c36b,2109
     pantry-tree:
-      sha256: f0627c90d29b9c2959d55077b5488f15aa9acbd6b1ef41136405c7a187c1930c
+      sha256: 093740d77f0efa2547dda9af5a8afa09f0123ba16383ee1a4121702a29d1c0b0
       size: 752
   original:
-    hackage: bowtie-0.7.0
+    hackage: bowtie-0.8.0
 - completed:
     hackage: daytripper-1.0.1@sha256:bd1492d68b51291690e3341fc69d444ec885351bb8d8cc7f91f0e83ec8c798be,3031
     pantry-tree:
@@ -19,12 +19,19 @@ packages:
   original:
     hackage: daytripper-1.0.1
 - completed:
-    hackage: looksee-0.8.2@sha256:706203079a952c9fc89cfc60bc1d6dbd1ead6bd58c7dad8b4914d4394d97356f,3293
+    hackage: errata-0.4.0.3@sha256:b66989752fd374d984a7a35ef22b7057791aef33cf4191a5cc467f412f7669a7,2335
     pantry-tree:
-      sha256: 62e0b0040dfc52a8cfa7a653ab59c73ec225bf08a4b84915ed1b8364707d5a19
+      sha256: 114c70d54397199672d8523c61b5c40e8402263e74353b6c863c1f82084b1b4d
+      size: 809
+  original:
+    hackage: errata-0.4.0.3
+- completed:
+    hackage: looksee-0.8.3@sha256:537b96ad4e01828f935ed0ea740975a289fd5a15b7c2bac227cd9049e97c0c4e,3351
+    pantry-tree:
+      sha256: 583113259a3a9333d7da71610f9f9cad2a99c96ced8de6ae05de89cd82f11a6b
       size: 340
   original:
-    hackage: looksee-0.8.2
+    hackage: looksee-0.8.3
 - completed:
     hackage: looksee-trip-0.8.0@sha256:dd57e6fabe306eafa0a81471a6e8d0d43832cdb9ba09012971949d7d6966a157,1845
     pantry-tree:
@@ -33,15 +40,22 @@ packages:
   original:
     hackage: looksee-trip-0.8.0
 - completed:
-    hackage: prop-unit-1.0.1@sha256:db1fdcc30294c15beff28cc62a5baf34a9d217bea3f3fa49720b406f3fc4e94b,3035
+    hackage: prop-unit-1.0.2@sha256:80e2ce717c14c5b6db3aa0e58615d8bb417089c54316aefe748f34243beee61e,3079
     pantry-tree:
-      sha256: 84c321efc37e92481c584086a5b85967b991ee5bb17b3db856221d6eef8480b1
+      sha256: c6c6ccf32f0a2324b5121251e25af53c3647d095b5c4beb7b374fa7b2ee58f21
       size: 466
   original:
-    hackage: prop-unit-1.0.1
+    hackage: prop-unit-1.0.2
+- completed:
+    hackage: some-1.1@sha256:cf90efa97e997615d684ee116fe9ea092d174db786108d9f1acfd9517d848322,1914
+    pantry-tree:
+      sha256: a260707e5cf6351fc5ef245152ac21f833f908d8f2d9beeea6eb42ac88804e26
+      size: 823
+  original:
+    hackage: some-1.1
 snapshots:
 - completed:
-    sha256: d141b089a21d9873b5febdf7c53296fb799b7fb602b9d3b003c022a81cc1cc01
-    size: 726795
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/24/30.yaml
-  original: lts-24.30
+    sha256: 53ca0201488b1213f9c4215808984f82686a1ec047c696c01d6b1b498d70869c
+    size: 753583
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2026/5/27.yaml
+  original: nightly-2026-05-27
