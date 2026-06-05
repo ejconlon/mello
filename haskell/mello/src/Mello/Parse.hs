@@ -7,14 +7,19 @@ module Mello.Parse
   , Loc (..)
   , LocSpan
   , LocSexp
+  , ParseErr (..)
   , sexpParser
-  , parseSexp
-  , parseSexpI
-  )
+   , parseSexp
+   , parseSexpDetailed
+   , parseSexpI
+   , parseSexpDetailedI
+   )
 where
 
 import Bowtie (Memo, pattern MemoP)
+import Control.Exception (Exception (..))
 import Control.Monad (guard, unless, void)
+import Data.Bifunctor (first)
 import Data.Char (isDigit, isSpace)
 import Data.Hashable (Hashable)
 import Data.Sequence (Seq (..))
@@ -22,9 +27,10 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Void (Void)
 import GHC.Generics (Generic)
-import Looksee (Err, ParserT, Span (..))
+import Looksee (Err, ParserT, Span (..), errSpan)
 import Looksee qualified as L
 import Mello.Syntax (Atom (..), Doc (..), SexpF (..), Sym (..))
+import Mello.Recognize (RecogErr (..), recognizeSexpText)
 import Mello.Text
   ( Brace
   , closeBraceChar
@@ -72,6 +78,27 @@ data Loc = Loc
 type LocSpan = Span Loc
 
 type LocSexp = Memo SexpF LocSpan
+
+data ParseErr
+  = -- | An opening delimiter was not closed before EOF.
+    ParseErrUnclosedList !Brace !LocSpan
+  | -- | A closing delimiter appeared with no matching opener.
+    ParseErrUnexpectedClose !Brace !LocSpan
+  | -- | A closing delimiter did not match the most recent opener.
+    ParseErrMismatchedBrace !Brace !LocSpan !Brace !LocSpan
+  | -- | A generic Looksee parse error, paired with its span converted to
+    -- Mello locations. This constructor intentionally exposes both values:
+    -- clients can render or inspect the original 'Err' while using 'LocSpan'
+    -- directly for Mello-style source annotations.
+    ParseErrLooksee !LocSpan !(Err Void)
+  deriving stock (Show)
+
+instance Exception ParseErr where
+  displayException = \case
+    ParseErrUnclosedList brace _ -> "unclosed list; expected '" <> [closeBraceChar brace] <> "' before end of input"
+    ParseErrUnexpectedClose brace _ -> "unexpected closing delimiter '" <> [closeBraceChar brace] <> "'"
+    ParseErrMismatchedBrace expected _ actual _ -> "mismatched closing delimiter; expected '" <> [closeBraceChar expected] <> "' but got '" <> [closeBraceChar actual] <> "'"
+    ParseErrLooksee _ err -> displayException err
 
 -- Specific parsers
 
@@ -182,10 +209,47 @@ parseSexp txt = do
       mkLoc o = let (l, c) = L.lookupLineCol o v in Loc l c o
   pure (fmap (fmap mkLoc) sexp)
 
+-- | Parse an s-expression with Mello-domain diagnostics.
+--
+-- Delimiter errors are classified before running the full parser. Generic
+-- parser failures keep the original Looksee error and include a converted
+-- Mello location span via 'ParseErrLooksee'.
+parseSexpDetailed :: Text -> Either ParseErr LocSexp
+parseSexpDetailed txt = do
+  first (parseErrRecognize txt) (recognizeSexpText txt)
+  first (parseErrLooksee txt) (parseSexp txt)
+
+parseErrLooksee :: Text -> Err Void -> ParseErr
+parseErrLooksee txt err = ParseErrLooksee (fmap (locAt txt) (errSpan err)) err
+
+parseErrRecognize :: Text -> RecogErr -> ParseErr
+parseErrRecognize txt = \case
+  RecogErrUnclosedList brace openOffset eofOffset -> ParseErrUnclosedList brace (Span (locAt txt openOffset) (locAt txt eofOffset))
+  RecogErrUnexpectedClose brace closeOffset -> ParseErrUnexpectedClose brace (offsetSpan txt closeOffset)
+  RecogErrMismatchedBrace expected openOffset actual closeOffset -> ParseErrMismatchedBrace expected (offsetSpan txt openOffset) actual (offsetSpan txt closeOffset)
+
+offsetSpan :: Text -> Int -> LocSpan
+offsetSpan txt offset = Span (locAt txt offset) (locAt txt (offset + 1))
+
+locAt :: Text -> Int -> Loc
+locAt txt offset =
+  let lookupTable = L.calculateLineCol txt
+      (line, col) = L.lookupLineCol offset lookupTable
+   in Loc line col offset
+
 parseSexpI :: Text -> IO (Either (Err Void) LocSexp)
 parseSexpI txt = do
   let ea = parseSexp txt
   case ea of
     Left e -> L.printE "<interactive>" txt e
+    Right _ -> pure ()
+  pure ea
+
+parseSexpDetailedI :: Text -> IO (Either ParseErr LocSexp)
+parseSexpDetailedI txt = do
+  let ea = parseSexpDetailed txt
+  case ea of
+    Left (ParseErrLooksee _ err) -> L.printE "<interactive>" txt err
+    Left err -> putStrLn (displayException err)
     Right _ -> pure ()
   pure ea

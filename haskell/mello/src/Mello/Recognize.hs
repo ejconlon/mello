@@ -1,12 +1,21 @@
--- TODO finish this
+-- | Lightweight lexical delimiter recognition for Mello s-expressions.
+--
+-- This module does not parse s-expressions. It only checks delimiter balance
+-- while respecting strings, chars, comments, and escapes. Offsets are returned
+-- directly so callers can convert them to their preferred source-location type.
 module Mello.Recognize
-  (
+  ( RecogErr (..)
+  , sexpRecognizer
+  , recognizeSexpText
   )
 where
 
 import Control.Foldl (Fold (..))
+import Control.Foldl qualified as Foldl
 import Control.Monad.Except (ExceptT (..), MonadError (..), runExceptT)
 import Control.Monad.State.Strict (State, gets, modify', runState)
+import Data.Text (Text)
+import Data.Text qualified as T
 import Mello.Text (Brace, readCloseBrace, readOpenBrace)
 
 data X e s = X !(Maybe e) !s
@@ -25,30 +34,37 @@ foldUntilErr step initial extract = Fold step' initial' extract'
   initial' = X Nothing initial
   extract' (X me s) = extract me s
 
-data RecogElem
-  = RecogElemString
-  | RecogElemChar
-  | RecogElemComment
-  | RecogElemSlashEsc
-  | RecogElemQuote
-  | RecogElemUnquote
-  | RecogElemBrace !Brace
-  deriving stock (Eq, Ord, Show)
-
-newtype RecogErr
-  = RecogErrMismatch Brace
+data RecogErr
+  = -- | An opener was not closed before EOF: brace, opener offset, EOF offset.
+    RecogErrUnclosedList !Brace !Int !Int
+  | -- | A closer appeared without a matching opener: actual brace, closer offset.
+    RecogErrUnexpectedClose !Brace !Int
+  | -- | A closer did not match the most recent opener: expected brace, opener offset, actual brace, closer offset.
+    RecogErrMismatchedBrace !Brace !Int !Brace !Int
   deriving stock (Eq, Ord, Show)
 
 data RecogState = RecogState
   { rsOffset :: !Int
-  , rsStack :: ![RecogElem]
+  , rsMode :: !RecogMode
+  , rsStack :: ![OpenList]
   }
   deriving stock (Eq, Ord, Show)
 
 initRecogState :: RecogState
-initRecogState = RecogState 0 []
+initRecogState = RecogState 0 RecogModeDefault []
 
 type RecogM = ExceptT RecogErr (State RecogState)
+
+data RecogMode
+  = RecogModeDefault
+  | RecogModeString
+  | RecogModeChar
+  | RecogModeComment
+  | RecogModeEscape !RecogMode
+  deriving stock (Eq, Ord, Show)
+
+data OpenList = OpenList !Brace !Int
+  deriving stock (Eq, Ord, Show)
 
 data CharCase
   = CharCaseNewline
@@ -76,59 +92,63 @@ readCharCase c =
             Nothing -> Nothing
 
 stepR :: Char -> RecogM ()
-stepR c = goRet
+stepR c = go <* incOffset
  where
-  goRet = goStart <* incOffset
-  goStart = do
-    mh <- peekStack
-    case mh of
-      Just RecogElemString -> goString
-      Just RecogElemChar -> goChar
-      Just RecogElemComment -> goComment
-      Just RecogElemSlashEsc -> goSlashEsc
-      Just RecogElemQuote -> goQuote
-      Just RecogElemUnquote -> goUnquote
-      Just (RecogElemBrace b) -> goDefault (Just b)
-      Nothing -> goDefault Nothing
+  go = do
+    mode <- gets rsMode
+    case mode of
+      RecogModeDefault -> goDefault
+      RecogModeString -> goString
+      RecogModeChar -> goChar
+      RecogModeComment -> goComment
+      RecogModeEscape mode' -> setMode mode'
   goString = case readCharCase c of
-    Just CharCaseDoubleQuote -> popStack
-    Just CharCaseSlashEsc -> pushStack RecogElemSlashEsc
+    Just CharCaseDoubleQuote -> setMode RecogModeDefault
+    Just CharCaseSlashEsc -> setMode (RecogModeEscape RecogModeString)
     _ -> pure ()
   goChar = case readCharCase c of
-    Just CharCaseSingleQuote -> popStack
-    Just CharCaseSlashEsc -> pushStack RecogElemSlashEsc
+    Just CharCaseSingleQuote -> setMode RecogModeDefault
+    Just CharCaseSlashEsc -> setMode (RecogModeEscape RecogModeChar)
     _ -> pure ()
   goComment = case readCharCase c of
-    Just CharCaseNewline -> popStack
+    Just CharCaseNewline -> setMode RecogModeDefault
     _ -> pure ()
-  goSlashEsc = popStack -- just ignore input and leave slash esc mode
-  goQuote = error "TODO"
-  goUnquote = error "TODO"
-  goDefault mb = case readCharCase c of
-    Just CharCaseDoubleQuote -> pushStack RecogElemString
-    Just CharCaseSingleQuote -> pushStack RecogElemChar
-    Just CharCaseOpenComment -> pushStack RecogElemComment
-    Just (CharCaseOpenBrace b) -> pushStack (RecogElemBrace b)
+  goDefault = case readCharCase c of
+    Just CharCaseDoubleQuote -> setMode RecogModeString
+    Just CharCaseSingleQuote -> setMode RecogModeChar
+    Just CharCaseOpenComment -> setMode RecogModeComment
+    Just (CharCaseOpenBrace b) -> pushOpen b
     Just (CharCaseCloseBrace b) ->
-      case mb of
-        Just b0 | b == b0 -> popStack
-        _ -> throwError (RecogErrMismatch b)
+      peekOpen >>= \case
+        Just (OpenList b0 _) | b == b0 -> popOpen
+        Just (OpenList b0 offset) -> throwAt (RecogErrMismatchedBrace b0 offset b)
+        Nothing -> throwAt (RecogErrUnexpectedClose b)
     _ -> pure ()
   incOffset = modify' (\s -> s {rsOffset = rsOffset s + 1})
-  pushStack h = modify' (\s -> s {rsStack = h : rsStack s})
-  popStack = modify' $ \s ->
+  setMode mode = modify' (\s -> s {rsMode = mode})
+  pushOpen b = do
+    offset <- gets rsOffset
+    modify' (\s -> s {rsStack = OpenList b offset : rsStack s})
+  popOpen = modify' $ \s ->
     case rsStack s of
       [] -> s
       _ : t -> s {rsStack = t}
-  peekStack = gets $ \s ->
+  peekOpen = gets $ \s ->
     case rsStack s of
       [] -> Nothing
       h : _ -> Just h
+  throwAt f = gets rsOffset >>= throwError . f
 
-extractR :: Maybe RecogErr -> RecogState -> Either RecogErr Bool
-extractR me s = maybe (Right (null (rsStack s))) Left me
+extractR :: Maybe RecogErr -> RecogState -> Either RecogErr ()
+extractR me s = case me of
+  Just err -> Left err
+  Nothing -> case rsStack s of
+    [] -> Right ()
+    OpenList brace openOffset : _ -> Left (RecogErrUnclosedList brace openOffset (rsOffset s))
 
--- TODO expose this when quote/unquote recognition is implemented
--- and it's all tested
-sexpRecognizer :: Fold Char (Either RecogErr Bool)
+sexpRecognizer :: Fold Char (Either RecogErr ())
 sexpRecognizer = foldUntilErr stepR initRecogState extractR
+
+-- | Recognize delimiter balance in a complete text value.
+recognizeSexpText :: Text -> Either RecogErr ()
+recognizeSexpText = Foldl.fold sexpRecognizer . T.unpack

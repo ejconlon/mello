@@ -9,8 +9,10 @@ import Control.Monad (void)
 import Data.List (isInfixOf)
 import Data.Text (Text)
 import Data.Void (Void)
+import Looksee (Span (..))
 import Mello.Match (MatchM, altM, anyIntM, anySymM, elemM, expectAnyInt, expectAnySym, listM, runMatchM, symM)
-import Mello.Parse (LocSpan, parseSexp, sexpParser)
+import Mello.Parse (Loc (..), LocSpan, ParseErr (..), parseSexp, parseSexpDetailed, sexpParser)
+import Mello.Recognize (RecogErr (..), recognizeSexpText)
 import Mello.Syntax
   ( Atom (..)
   , Brace (..)
@@ -22,7 +24,10 @@ import Mello.Syntax
   , pattern SexpQuote
   , pattern SexpUnquote
   )
-import PropUnit (MonadTest, TestName, TestTree, testGroup, testUnit)
+import PropUnit (Gen, MonadTest, TestLimit, TestName, TestTree, testGroup, testUnit)
+import PropUnit qualified as PU
+import PropUnit.Hedgehog.Gen qualified as Gen
+import PropUnit.Hedgehog.Range qualified as Range
 import Test.Daytripper (daytripperMain, mkUnitRT, testRT)
 import Test.Looksee.Trip (ExpectP, cmpEq, expectParsePretty, expectRendered)
 
@@ -56,6 +61,122 @@ testParsing =
     , parseCaseAs "atom sym special 5" "->" (SexpAtom (AtomSym "->"))
     , parseCaseAs "atom sym special 6" ":x" (SexpAtom (AtomSym ":x"))
     ]
+
+testParseSexpDetailed :: TestTree
+testParseSexpDetailed =
+  testGroup
+    "parseSexpDetailed"
+     [ testUnit "success" $ do
+        case parseSexpDetailed "(1 2)" of
+          Left err -> fail ("expected parse success, got: " <> displayException err)
+          Right _ -> pure ()
+    , testUnit "ignores delimiters in strings" $ do
+        case parseSexpDetailed "(\"[}\" 1)" of
+          Left err -> fail ("expected parse success, got: " <> displayException err)
+          Right _ -> pure ()
+    , testUnit "ignores delimiters in chars" $ do
+        case parseSexpDetailed "(']' 1)" of
+          Left err -> fail ("expected parse success, got: " <> displayException err)
+          Right _ -> pure ()
+    , testUnit "ignores delimiters in comments" $ do
+        case parseSexpDetailed "(; ]\n 1)" of
+          Left err -> fail ("expected parse success, got: " <> displayException err)
+          Right _ -> pure ()
+    , testUnit "ignores delimiters in docs" $ do
+        case parseSexpDetailed ";| ]\n; }\n(1)" of
+          Left err -> fail ("expected parse success, got: " <> displayException err)
+          Right _ -> pure ()
+    , testUnit "unclosed list" $ do
+        case parseSexpDetailed "(1 2" of
+          Left (ParseErrUnclosedList BraceParen (Span (Loc 0 0 0) (Loc 0 3 4))) -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "multiline unclosed list" $ do
+        case parseSexpDetailed "(1\n 2" of
+          Left (ParseErrUnclosedList BraceParen (Span (Loc 0 0 0) (Loc 1 1 5))) -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "unexpected close" $ do
+        case parseSexpDetailed ")" of
+          Left (ParseErrUnexpectedClose BraceParen (Span (Loc 0 0 0) (Loc 0 0 1))) -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "mismatched brace" $ do
+        case parseSexpDetailed "[1)" of
+          Left (ParseErrMismatchedBrace BraceSquare (Span (Loc 0 0 0) (Loc 0 1 1)) BraceParen (Span (Loc 0 2 2) (Loc 0 2 3))) -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "multiline mismatched brace" $ do
+        case parseSexpDetailed "[1\n )" of
+          Left (ParseErrMismatchedBrace BraceSquare (Span (Loc 0 0 0) (Loc 0 1 1)) BraceParen (Span (Loc 1 1 4) (Loc 1 1 5))) -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "generic parse errors carry source span" $ do
+        case parseSexpDetailed "" of
+          Left (ParseErrLooksee (Span (Loc 0 0 0) _) _) -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    ]
+
+testRecognize :: TestLimit -> TestTree
+testRecognize lim =
+  testGroup
+    "recognize"
+    [ testUnit "success" $ do
+        case recognizeSexpText "(1 [2] {3})" of
+          Right () -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "quote does not crash" $ do
+        case recognizeSexpText "`[1]" of
+          Right () -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "unquote does not crash" $ do
+        case recognizeSexpText ",[1]" of
+          Right () -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "unclosed list" $ do
+        case recognizeSexpText "(1\n 2" of
+          Left (RecogErrUnclosedList BraceParen 0 5) -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "unexpected close" $ do
+        case recognizeSexpText ")" of
+          Left (RecogErrUnexpectedClose BraceParen 0) -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "mismatched brace" $ do
+        case recognizeSexpText "`[1)" of
+          Left (RecogErrMismatchedBrace BraceSquare 1 BraceParen 3) -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , testUnit "ignores delimiters in strings chars and comments" $ do
+        case recognizeSexpText "(\"[}\" ']' ; )\n 1)" of
+          Right () -> pure ()
+          other -> fail ("unexpected result: " <> show other)
+    , PU.testProp "agrees with parser on generated balanced inputs" lim $ do
+        input <- PU.forAll genBalancedInput
+        case parseSexp input of
+          Left err -> fail ("expected parse success for " <> show input <> ", got: " <> displayException err)
+          Right _ -> pure ()
+        case recognizeSexpText input of
+          Left err -> fail ("expected recognize success for " <> show input <> ", got: " <> show err)
+          Right () -> pure ()
+    ]
+
+genBalancedInput :: Gen Text
+genBalancedInput = Gen.recursive Gen.choice [genAtom] [genList, genPrefix, genDoc]
+ where
+  genAtom =
+    Gen.element
+      ([ "1"
+      , "abc"
+      , "\"[not a delimiter]\""
+      , "\"escaped \\\" ]\""
+      , "']'"
+      , "'x'"
+      ] :: [Text])
+  genList = do
+    (open, close) <- Gen.element ([ ("(", ")"), ("[", "]"), ("{", "}") ] :: [(Text, Text)])
+    body <- Gen.list (Range.constant 0 4) genBalancedInput
+    pure (open <> foldMap (" " <>) body <> close)
+  genPrefix = do
+    prefix <- Gen.element (["`", ","] :: [Text])
+    input <- genBalancedInput
+    pure (prefix <> input)
+  genDoc = do
+    input <- genBalancedInput
+    pure (";| doc ]\n; more }\n" <> input)
 
 -- Match error display tests
 
@@ -100,9 +221,11 @@ testDisplayException =
 
 main :: IO ()
 main =
-  daytripperMain $ \_ ->
+  daytripperMain $ \lim ->
     testGroup
       "mello"
       [ testParsing
+      , testParseSexpDetailed
+      , testRecognize lim
       , testDisplayException
       ]
