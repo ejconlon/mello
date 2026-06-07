@@ -15,7 +15,7 @@ extra-deps:
 - bowtie-0.8.0
 - daytripper-1.0.1
 - errata-0.4.0.3
-- looksee-0.8.3
+- looksee-0.8.4
 - looksee-trip-0.8.0
 - prop-unit-1.0.2
 - some-1.1

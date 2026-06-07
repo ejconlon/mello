@@ -26,12 +26,12 @@ packages:
   original:
     hackage: errata-0.4.0.3
 - completed:
-    hackage: looksee-0.8.3@sha256:537b96ad4e01828f935ed0ea740975a289fd5a15b7c2bac227cd9049e97c0c4e,3351
+    hackage: looksee-0.8.4@sha256:cfbe494ffb9a5686271da60c79062180ed85747e56a672e8876a8577e8e5bcaa,3351
     pantry-tree:
-      sha256: 583113259a3a9333d7da71610f9f9cad2a99c96ced8de6ae05de89cd82f11a6b
+      sha256: b7d6c93996946c1294ca55f585872b0e606be12dafee94733e54490e48ffb94d
       size: 340
   original:
-    hackage: looksee-0.8.3
+    hackage: looksee-0.8.4
 - completed:
     hackage: looksee-trip-0.8.0@sha256:dd57e6fabe306eafa0a81471a6e8d0d43832cdb9ba09012971949d7d6966a157,1845
     pantry-tree:
